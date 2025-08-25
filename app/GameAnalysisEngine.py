@@ -1,0 +1,91 @@
+import io
+import numpy as np
+import pandas as pd
+import chess.pgn
+from stockfish import Stockfish
+
+class GameAnalysisEngine:
+    """A class to parse and analyze a pgn of a chess game, adding features to help with cheat detection"""
+
+    def __init__(self):
+        self.pgn = None
+        self.game = None
+        self.engine = Stockfish('/opt/homebrew/bin/stockfish')
+        self.game_df = None
+    
+    def load_game(self, pgn):
+        self.pgn = io.StringIO(pgn)
+        self.game = chess.pgn.read_game(self.pgn)
+    
+    def extract_pgn_data(self):
+        if self.pgn is None:
+            raise Exception("You must load a pgn first")
+        
+        white_moves = []
+        # white_comments = []
+        white_evals = []
+        white_times = []
+
+        black_moves = []
+        # black_comments = []
+        black_evals = []
+        black_times = []
+
+        #or if you want to loop over all game nodes:
+        ply = 0
+        while not self.game.is_end():
+            node = self.game.variations[0]
+            move = node.move
+
+            ## keep all evals from white's point of view
+            eval = node.eval().white().score() / 100
+            time = node.clock()
+            # comment = node.comment
+            if ply % 2 == 0:
+                white_moves.append(move)
+                # white_comments.append(comment)
+                white_evals.append(eval)
+                white_times.append(time)
+            else:
+                black_moves.append(move)
+                # black_comments.append(comment)
+                black_evals.append(eval)
+                black_times.append(time)
+            
+            self.game = node  
+            ply += 1
+            
+        self.game_df = pd.DataFrame({
+            'white_moves': white_moves,
+            'black_moves': black_moves,
+            'white_times': white_times,
+            'black_times': black_times,
+            'white_evals': white_evals,
+            'black_evals': black_evals,
+        })
+    
+    def classify_moves(self):
+        pass
+    
+    def create_features(self):
+        self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)
+        self.game_df['white_eval_diff'] = self.game_df['white_evals'] - self.game_df['black_evals_shifted']
+
+        ## make this value negative so it's the change from black's perspective
+        self.game_df['black_eval_diff'] = - (self.game_df['black_evals'] - self.game_df['white_evals'])
+
+        eval_bins = [-np.inf, -1.00, -0.50, -0.20, 1.00]
+        move_class = ['blunder','mistake','inaccuracy','good']
+
+        self.game_df['white_evals_ind'] = pd.cut(self.game_df['white_eval_diff'], bins=eval_bins, labels=move_class)
+        self.game_df['black_evals_ind'] = pd.cut(self.game_df['black_eval_diff'], bins=eval_bins, labels=move_class)
+        print(self.game_df[['white_moves','black_moves','white_evals_ind','black_evals_ind']].to_string())
+        
+        white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
+        black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
+        print(f"white average cp loss = {white_avg_cp_loss}")
+        print(f"black average cp loss = {black_avg_cp_loss}")
+    
+    def analyze_game(self):
+        self.extract_pgn_data()
+        self.create_features()

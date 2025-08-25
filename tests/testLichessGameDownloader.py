@@ -1,12 +1,7 @@
 from app.LichessGameDownloader import LichessGameDownloader
-from app.GameAnalysisEngine import GameAnalysisEngine
 
-def testGameAnalysisEngine():
+def testLichessGameDownloader():
     testGameDownloader = LichessGameDownloader()
     testGameDownloader.get_game('aLP7JnzH')
     testPGN = testGameDownloader.pgn
-
-    testEngine = GameAnalysisEngine()
-    testEngine.load_game(testPGN)
-    testEngine.analyze_game()
-    
+    print(testPGN)

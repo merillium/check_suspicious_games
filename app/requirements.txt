@@ -4,3 +4,4 @@ plotly==6.3.0
 dash==3.1.0
 stockfish==3.28.0
 python-chess==1.10.0
+python-lichess==0.10
