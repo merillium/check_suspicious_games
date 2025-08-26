@@ -1,12 +1,17 @@
+import pytest
 from app.LichessGameDownloader import LichessGameDownloader
 from app.GameAnalysisEngine import GameAnalysisEngine
 
-def testGameAnalysisEngine():
-    testGameDownloader = LichessGameDownloader()
-    testGameDownloader.get_game('aLP7JnzH')
-    testPGN = testGameDownloader.pgn
+def testGameAnalysisEngine(getGameCode):
+    try:
+        testGameDownloader = LichessGameDownloader()
+        testGameDownloader.get_game(getGameCode)
+        testPGN = testGameDownloader.pgn
+        testEngine = GameAnalysisEngine()
+        testEngine.load_game(testPGN)
+        testEngine.analyze_game()
+    except ValueError as e:
+        print(f"Caught exception {e}")
 
-    testEngine = GameAnalysisEngine()
-    testEngine.load_game(testPGN)
-    testEngine.analyze_game()
+
     

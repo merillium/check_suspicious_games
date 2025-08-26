@@ -25,5 +25,5 @@ class LichessGameDownloader:
             final_game_code = game_code
             
             self.pgn = lichess.api.game(final_game_code, format=PGN)
-        except Exception as e:
-            raise Exception(e)
+        except ValueError as e:
+            raise e
