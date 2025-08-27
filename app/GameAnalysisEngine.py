@@ -28,16 +28,16 @@ class GameAnalysisEngine:
             raise Exception("You must load a pgn first")
         
         white_moves = []
-        # white_comments = []
         white_evals = []
         white_times = []
         white_top_moves = []
+        white_top_evals = []
 
         black_moves = []
-        # black_comments = []
         black_evals = []
         black_times = []
         black_top_moves = []
+        black_top_evals = []
 
         #or if you want to loop over all game nodes:
         ply = 0
@@ -47,23 +47,25 @@ class GameAnalysisEngine:
 
             ## keep all evals from white's point of view
             self.engine.make_moves_from_current_position([move])
-            top_moves = self.engine.get_top_moves(3)
+            top_moves_info = self.engine.get_top_moves(5)
+            top_moves = [info['Move'] for info in top_moves_info]
+            top_evals = [info['Centipawn']/100 for info in top_moves_info]
+
             eval = self.engine.get_evaluation()['value'] / 100
 
             time = node.clock()
-            # comment = node.comment
             if ply % 2 == 0:
                 white_moves.append(move)
-                # white_comments.append(comment)
                 white_evals.append(eval)
                 white_times.append(time)
                 white_top_moves.append(top_moves)
+                white_top_evals.append(top_evals)
             else:
                 black_moves.append(move)
-                # black_comments.append(comment)
                 black_evals.append(eval)
                 black_times.append(time)
                 black_top_moves.append(top_moves)
+                black_top_evals.append(top_evals)
             
             self.game = node  
             ply += 1
@@ -77,7 +79,18 @@ class GameAnalysisEngine:
             'black_evals': black_evals,
             'white_top_moves': white_top_moves,
             'black_top_moves': black_top_moves,
+            'white_top_evals': white_top_evals,
+            'black_top_evals': black_top_evals,
         })
+
+    @staticmethod
+    def _label_forced_move(top_evals: list, eval_th=2.00):
+        if len(top_evals) == 1:
+            return "forced"
+        elif top_evals[0] - top_evals[1] > eval_th:
+            return "forced"
+        else:
+            return ""
     
     def _classify_moves(self):
         """Classify moves as critical or forced
@@ -87,7 +100,12 @@ class GameAnalysisEngine:
         (2) forced means that there is only one reasonable good move (e.g. recapture, only legal move)
 
         """
-        pass
+
+        self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x))
+        self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x))
+
+        self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_forced_move(x))
+        self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_forced_move(x))
     
     def _create_features(self):
         self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)
@@ -101,10 +119,14 @@ class GameAnalysisEngine:
 
         self.game_df['white_evals_ind'] = pd.cut(self.game_df['white_eval_diff'], bins=eval_bins, labels=move_class)
         self.game_df['black_evals_ind'] = pd.cut(self.game_df['black_eval_diff'], bins=eval_bins, labels=move_class)
-        print(self.game_df[['white_moves','black_moves','white_top_moves','black_top_moves']].to_string())
         
         white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
         black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
+
+        self._classify_moves()
+
+        print(self.game_df[['white_moves','black_moves','white_move_class','black_move_class']].to_string())
+        
         # print(f"white average cp loss = {white_avg_cp_loss}")
         # print(f"black average cp loss = {black_avg_cp_loss}")
 

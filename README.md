@@ -2,6 +2,10 @@
 
 This is a work-in-progress app that locates and downloads a lichess pgn through the lichess API, then analyzes move times and evaluation changes to flag suspicious moves or behavior.
 
+## Background
+
+Although average centipawn loss can be a good way to flag cheaters, it will only work for the most obvious cases.
+
 ## Installing Dependencies
 To install dependencies, run the following command:
 ```bash
@@ -13,3 +17,7 @@ To execute unit tests, run the following command:
 ```bash
 pytest -s tests/*.py
 ```
+
+## To-do
+- fix tests so that we can mock returning a pgn from lichess API, but don't make a GET request every time we run a test
+- 
