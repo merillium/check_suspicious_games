@@ -52,4 +52,8 @@ GAME_ID_TO_PGN = {
 @pytest.fixture(params=['aLP7JnzH','XXXXXXX-','MnLpAAgm'])
 def get_sample_pgn(request):
     """Return sample PGN string based on game code"""
-    return textwrap.dedent(GAME_ID_TO_PGN[request.param]).strip()
+    sample_pgn = GAME_ID_TO_PGN[request.param]
+    if sample_pgn is None:
+        return None
+    else:
+        return textwrap.dedent(sample_pgn).strip()

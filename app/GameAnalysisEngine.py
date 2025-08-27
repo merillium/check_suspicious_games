@@ -19,7 +19,9 @@ class GameAnalysisEngine:
         )
         self.game_df = None
     
-    def load_game(self, pgn):
+    def load_game(self, pgn: str):
+        if not isinstance(pgn, str):
+            raise TypeError(f"pgn must be of type string, got {type(pgn)} instead")
         self.pgn = io.StringIO(pgn)
         self.game = chess.pgn.read_game(self.pgn)
     
@@ -84,16 +86,18 @@ class GameAnalysisEngine:
         })
 
     @staticmethod
-    def _label_forced_move(top_evals: list, eval_th=2.00):
+    def _label_moves(top_evals: list, forced_eval_th=2.00, critical_eval_spread_th=2.00):
         if len(top_evals) == 1:
             return "forced"
-        elif top_evals[0] - top_evals[1] > eval_th:
+        elif top_evals[0] - top_evals[1] > forced_eval_th:
             return "forced"
+        elif top_evals[-1] - top_evals[0] > critical_eval_spread_th:
+            return "critical"
         else:
             return ""
     
-    def _classify_moves(self):
-        """Classify moves as critical or forced
+    def _flag_moves(self):
+        """Flag certain moves based on critical or forced labels, combined with time spent
         
         We will use the following definitions for simplicity:
         (1) critical means that the evals between the best N moves differs by a lot ( > 1.00 cp)
@@ -104,8 +108,8 @@ class GameAnalysisEngine:
         self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x))
         self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x))
 
-        self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_forced_move(x))
-        self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_forced_move(x))
+        self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_moves(x))
+        self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_moves(x))
     
     def _create_features(self):
         self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)
@@ -123,14 +127,12 @@ class GameAnalysisEngine:
         white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
         black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
 
-        self._classify_moves()
+        self._flag_moves()
 
-        print(self.game_df[['white_moves','black_moves','white_move_class','black_move_class']].to_string())
+        print(self.game_df.to_string())
         
         # print(f"white average cp loss = {white_avg_cp_loss}")
         # print(f"black average cp loss = {black_avg_cp_loss}")
-
-        self._classify_moves()
     
     def analyze_game(self):
         self._extract_pgn_data()
