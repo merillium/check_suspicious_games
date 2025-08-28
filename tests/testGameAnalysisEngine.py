@@ -10,8 +10,7 @@ def test_suspicious_game(get_sample_pgn):
     testGameDownloader.pgn = get_sample_pgn
     test_pgn = get_sample_pgn
     testEngine = GameAnalysisEngine()
-    try:
-        testEngine.load_game(test_pgn)
-        testEngine.analyze_game()
-    except TypeError:
-        print("Exception caught, invalid pgn")
+    testEngine.load_game(test_pgn)
+    print("analyzing game...")
+    testEngine.analyze_game()
+    print("DONE")

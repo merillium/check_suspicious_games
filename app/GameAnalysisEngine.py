@@ -71,8 +71,13 @@ class GameAnalysisEngine:
             
             self.game = node  
             ply += 1
-            
-        self.game_df = pd.DataFrame({
+
+        # print(f"white_moves has length = {len(white_moves)}")
+        # print(f"black_moves has length = {len(black_moves)}")
+        # print(f"white_times has length = {len(white_times)}")
+        # print(f"black_times has length = {len(black_times)}")
+
+        data_dict = {
             'white_moves': white_moves,
             'black_moves': black_moves,
             'white_times': white_times,
@@ -83,33 +88,46 @@ class GameAnalysisEngine:
             'black_top_moves': black_top_moves,
             'white_top_evals': white_top_evals,
             'black_top_evals': black_top_evals,
-        })
+        }
+        
+        ## one linear that guarantees all columns have the same length
+        self.game_df = pd.DataFrame({key:pd.Series(value) for key, value in data_dict.items()})
+        print(self.game_df)
 
     @staticmethod
-    def _label_moves(top_evals: list, forced_eval_th=2.00, critical_eval_spread_th=2.00):
-        if len(top_evals) == 1:
+    def _label_moves(top_evals: list, forced_eval_th, critical_eval_spread_th, time_spent_th=None):
+        if not isinstance(top_evals, list):
+            return None
+        
+        ## only legal move --> forced
+        elif len(top_evals) == 1:
             return "forced"
+        
+        ## the best move is much better than all other moves --> forced
         elif top_evals[0] - top_evals[1] > forced_eval_th:
             return "forced"
+    
+        ## out of the top 5 moves, the spread between best and worst is sufficiently large --> critical
         elif top_evals[-1] - top_evals[0] > critical_eval_spread_th:
             return "critical"
+        
+        ## no other classification --> ""
         else:
             return ""
     
-    def _flag_moves(self):
-        """Flag certain moves based on critical or forced labels, combined with time spent
+    def _flag_moves(self, forced_eval_th=2.00, critical_eval_spread_th=2.00):
+        """Flag certain moves based on critical or forced labels, combined with time spent to flag a move as suspicious
         
         We will use the following definitions for simplicity:
-        (1) critical means that the evals between the best N moves differs by a lot ( > 1.00 cp)
-        (2) forced means that there is only one reasonable good move (e.g. recapture, only legal move)
+        (1) forced means that there is only one legal move, or the difference between the best move and second best move is greater than some threshold
 
         """
 
-        self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x))
-        self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x))
+        self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
+        self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
 
-        self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_moves(x))
-        self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_moves(x))
+        self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_moves(x, forced_eval_th, critical_eval_spread_th))
+        self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_moves(x, forced_eval_th, critical_eval_spread_th))
     
     def _create_features(self):
         self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)
@@ -118,18 +136,16 @@ class GameAnalysisEngine:
         ## make this value negative so it's the change from black's perspective
         self.game_df['black_eval_diff'] = - (self.game_df['black_evals'] - self.game_df['white_evals'])
 
-        eval_bins = [-np.inf, -1.00, -0.50, -0.20, 1.00]
-        move_class = ['blunder','mistake','inaccuracy','good']
+        # eval_bins = [-np.inf, -1.00, -0.50, -0.20, 1.00]
+        # move_class = ['blunder','mistake','inaccuracy','good']
 
-        self.game_df['white_evals_ind'] = pd.cut(self.game_df['white_eval_diff'], bins=eval_bins, labels=move_class)
-        self.game_df['black_evals_ind'] = pd.cut(self.game_df['black_eval_diff'], bins=eval_bins, labels=move_class)
+        # self.game_df['white_evals_ind'] = pd.cut(self.game_df['white_eval_diff'], bins=eval_bins, labels=move_class)
+        # self.game_df['black_evals_ind'] = pd.cut(self.game_df['black_eval_diff'], bins=eval_bins, labels=move_class)
         
-        white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
-        black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
+        # white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
+        # black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
 
         self._flag_moves()
-
-        print(self.game_df.to_string())
         
         # print(f"white average cp loss = {white_avg_cp_loss}")
         # print(f"black average cp loss = {black_avg_cp_loss}")
@@ -137,3 +153,5 @@ class GameAnalysisEngine:
     def analyze_game(self):
         self._extract_pgn_data()
         self._create_features()
+
+        print(self.game_df[['white_moves','black_moves','white_move_class','black_move_class']].to_string())
