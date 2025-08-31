@@ -20,4 +20,11 @@ pytest -s tests/*.py
 
 ## To-do
 - fix tests so that we can mock returning a pgn from lichess API, but don't make a GET request every time we run a test
-- 
+- finish basic version of app that supports pgn file upload, and error handling
+- thorough tests from preloaded pgns to serve as training for basic suspicious move detection
+- error handling for clicking Analyze game without loading a game first
+
+## App Layout Design
+- the pgn will be displayed but cannot be edited
+- how do we show the moves? maybe show the move with comments as the slider is moved
+- how do we display suspicious moves? do we use a figure, table, or just display as text?

@@ -1,6 +1,7 @@
 import io
 import numpy as np
 import pandas as pd
+import chess
 import chess.pgn
 from stockfish import Stockfish
 
@@ -24,6 +25,23 @@ class GameAnalysisEngine:
             raise TypeError(f"pgn must be of type string, got {type(pgn)} instead")
         self.pgn = io.StringIO(pgn)
         self.game = chess.pgn.read_game(self.pgn)
+    
+    def get_fens(self):
+        if self.pgn is None:
+            raise Exception("You must load a pgn first")
+        
+        board = chess.Board()
+        fens = [board.starting_fen]
+        
+        node = self.game
+        while not node.is_end():
+            move = str(node.variations[0].move)
+            print(f"making move {move}")
+            board.push_uci(move)
+            fens.append(board.fen())
+            node = node.variations[0]
+                    
+        return fens
     
     def _extract_pgn_data(self):
         if self.pgn is None:
@@ -90,10 +108,10 @@ class GameAnalysisEngine:
             'black_top_evals': black_top_evals,
         }
         
-        ## one linear that guarantees all columns have the same length
+        ## one liner that guarantees all columns have the same length
         self.game_df = pd.DataFrame({key:pd.Series(value) for key, value in data_dict.items()})
         print(self.game_df)
-
+    
     @staticmethod
     def _label_moves(top_evals: list, forced_eval_th, critical_eval_spread_th, time_spent_th=None):
         if not isinstance(top_evals, list):
