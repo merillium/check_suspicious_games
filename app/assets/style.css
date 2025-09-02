@@ -1,0 +1,28 @@
+textarea {
+  width: 400px;
+  resize: none;
+}
+
+.all-move-buttons {
+    padding-left: 75px;
+}
+
+.move-button {
+    width: 60px;
+    height: 30px;
+    color: #9081BE;
+    background-color: #e5d7f9;
+}
+
+#board {
+    width: 400px;
+}
+
+#gameinfo {
+    width: 600px;
+    height: 30px;
+}
+
+#pgn-textarea {
+    height: 200px;
+}

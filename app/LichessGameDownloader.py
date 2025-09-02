@@ -15,15 +15,16 @@ class LichessGameDownloader:
         try:
             ## if game_code is a url, extract the game_code portion only
             if "lichess.org" in game_id:
-                game_code = re.search(r"lichess\.org/([^/]+)/", game_id)
+                final_game_code = re.search(r"lichess\.org/([^/]+)/", game_id)
             
             else:
                 ## throw an error if the game code itself is invalid
-                if not game_code.isalnum():
+                if not game_id.isalnum():
                     raise ValueError(f"Invalid game code: {game_id}. Must be alphanumeric")
             
             final_game_code = game_id
             
             self.pgn = lichess.api.game(final_game_code, format=PGN)
+            print(f"retrieved and est pgn corresponding to game_id={game_id} through lichess API")
         except ValueError as e:
             raise e

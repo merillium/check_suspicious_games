@@ -1,5 +1,5 @@
 import base64
-from dash import Dash, dcc, html, Input, Output, State, ctx
+from dash import Dash, dcc, html, Input, Output, State, ctx, no_update
 from LichessGameDownloader import LichessGameDownloader
 from GameAnalysisEngine import GameAnalysisEngine
 
@@ -23,31 +23,46 @@ app.layout = html.Div([
     ## supports pgn upload currently (must have timestamps)
     ## will also want to support API call to load game
 
-    html.Div(id="board", style={"width": "400px"}),
+    html.Div(id="board"),
     html.Br(),
     dcc.Store(id="fens-store"),  # stores the list of FENs
     dcc.Store(id="move-idx", data=0),
     dcc.Store(id="dummy"), # dummy output for clientside callback
     html.Div(
         [
-            html.Button('<', id='move-back', n_clicks=0, style={'width': '60px', 'height': '30px', 'color': "#9081BE"}, disabled=True,),
+            html.Button('<<', id='move-beginning', className='move-button', n_clicks=0, disabled=True,),
             html.Span(" "),
-            html.Button('>', id='move-forward', n_clicks=0, style={'width': '60px', 'height': '30px', 'color': "#9081BE"}, disabled=True),
+            html.Button('<', id='move-back', className='move-button', n_clicks=0, disabled=True,),
+            html.Span(" "),
+            html.Button('>', id='move-forward', className='move-button', n_clicks=0, disabled=True),
+            html.Span(" "),
+            html.Button('>>', id='move-end', className='move-button', n_clicks=0, disabled=True,),
         ],
-        style={"marginLeft": "140px"},
+        className='all-move-buttons',
     ),
     html.Br(),
     dcc.Textarea(
         id='game-info',
         value='Enter game_id or lichess game url',
-        style={'width': '60%', 'height': 30},
+    ),
+    html.Br(),
+    html.Br(),
+    html.Div(
+        [
+            html.Button(
+                "Download Game",
+                id="download-game",
+                n_clicks=0,
+                style={"whiteSpace": "pre-wrap"},
+            )
+        ],
+        style={"paddingLeft": "10px"},
     ),
     html.Br(),
     dcc.Textarea(
         id='pgn-textarea',
-        value='Analysis will show up here',
+        value='Game will show up here',
         readOnly=True,
-        style={'width': '60%', 'height': 200},
     ),
     dcc.Upload(
         id="upload-pgn-data",
@@ -93,15 +108,27 @@ app.layout = html.Div([
     html.Div(id='dummy-output'),
 ])
 
-# @app.callback(
-#     Output("pgn-textarea", "value"),
-#     Output("pgn-data","data"),
-#     Input("upload-pgn-data", "contents"),
-#     prevent_initial_call=True,
-# )
-# def download_game(content):
-#     pass
-
+@app.callback(
+    Output("pgn-textarea", "value", allow_duplicate=True),
+    Output("pgn-data","data", allow_duplicate=True),
+    Input("download-game", "n_clicks"),
+    Input("game-info", "value"),
+    prevent_initial_call=True,
+)
+def download_game(download_click, game_code):
+    if ctx.triggered_id == 'download-game':
+        try:
+            print("here")
+            gameDownloader = LichessGameDownloader()
+            gameDownloader.get_game(game_code.strip())
+            pgn_textarea = str(gameDownloader.pgn)
+            pgn_data = gameDownloader.pgn
+            return pgn_textarea, pgn_data
+        except Exception as e:
+            error_message = f"Error while downloading game: {e}"
+            return error_message, None
+    else:
+        return no_update
 
 @app.callback(
     Output("pgn-textarea", "value"),
@@ -132,8 +159,10 @@ def process_upload(content, filename):
 @app.callback(
     Output("pgn-upload-message", "children", allow_duplicate=True),
     Output("fens-store", "data"),
+    Output("move-beginning", "disabled"),
     Output("move-back", "disabled"),
     Output("move-forward", "disabled"),
+    Output("move-end", "disabled"),
     Output("move-idx", "data", allow_duplicate=True),
     Input("analyze-game", "n_clicks"),
     State("upload-pgn-data", "contents"),
@@ -145,7 +174,7 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     print(f"pgn_data = {pgn_data}")
     if pgn_data is None:
         error_message = f"Error: no pgn file found"
-        return error_message, None, 0, True, True, move_idx
+        return error_message, None, True, True, True, True, move_idx
     try:
         print("analyzing game...")
         testEngine = GameAnalysisEngine()
@@ -157,32 +186,50 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
         ## reenable buttons!
         fens = testEngine.get_fens()
         move_idx = 0
-        return "", fens, False, False, move_idx
+        return "", fens, False, False, False, False, move_idx
     except Exception as e:
         error_message = f"Error: your pgn file could not be analyzed due to {e}"
-        return error_message, None, True, True, 0
+        return error_message, None, True, True, True, True, 0
 
 @app.callback(
     Output("move-idx", "data", allow_duplicate=True),
+    Input("move-beginning", "n_clicks"),
     Input("move-back", "n_clicks"),
     Input("move-forward", "n_clicks"),
+    Input("move-end", "n_clicks"),
     State("move-idx", "data"),
     State("fens-store", "data"),
     prevent_initial_call=True,
 )
-def make_moves(back_click, forward_click, move_idx, fens):
-    if ctx.triggered_id == 'move-back':
+def make_moves(beginning_click, back_click, forward_click, end_click, move_idx, fens):
+    if ctx.triggered_id == 'move-beginning':
+        if move_idx == 0:
+            pass
+        else:
+            move_idx = 0
+    
+    elif ctx.triggered_id == 'move-back':
         if move_idx == 0:
             pass
         else:
             move_idx = move_idx - 1
     
-    if ctx.triggered_id == 'move-forward':
-        if move_idx == len(fens):
+    elif ctx.triggered_id == 'move-forward':
+        if move_idx == len(fens)-1:
             pass
         else:
             move_idx = move_idx + 1
     
+    elif ctx.triggered_id == 'move-end':
+        if move_idx == len(fens)-1:
+            pass
+        else:
+            move_idx = len(fens)-1
+    
+    else:
+        return no_update
+    
+    # print(f"{ctx.triggered_id} was triggered, move_idx updated to {move_idx}")
     return move_idx
 
 
