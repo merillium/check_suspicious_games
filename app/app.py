@@ -26,21 +26,17 @@ app.layout = html.Div([
     html.Div(id="board", style={"width": "400px"}),
     html.Br(),
     dcc.Store(id="fens-store"),  # stores the list of FENs
+    dcc.Store(id="move-idx", data=0),
     dcc.Store(id="dummy"), # dummy output for clientside callback
     html.Div(
         [
-            dcc.Slider(
-                id="move-slider",
-                className = 'slider',
-                min=0,
-                max=0,  # will update dynamically
-                step=1,
-                value=None,
-            )
+            html.Button('<', id='move-back', n_clicks=0, style={'width': '60px', 'height': '30px', 'color': "#9081BE"}, disabled=True,),
+            html.Span(" "),
+            html.Button('>', id='move-forward', n_clicks=0, style={'width': '60px', 'height': '30px', 'color': "#9081BE"}, disabled=True),
         ],
-        style={"paddingLeft": "10px", 'width': '450'},
+        style={"marginLeft": "140px"},
     ),
-    
+    html.Br(),
     dcc.Textarea(
         id='game-info',
         value='Enter game_id or lichess game url',
@@ -108,8 +104,8 @@ app.layout = html.Div([
 
 
 @app.callback(
-    Output("pgn-textarea", "value", allow_duplicate=True),
-    Output("pgn-upload-message", "children"),
+    Output("pgn-textarea", "value"),
+    Output("pgn-upload-message", "children", allow_duplicate=True),
     Output("pgn-data","data"),
     Input("upload-pgn-data", "contents"),
     State("upload-pgn-data", "filename"),
@@ -134,30 +130,63 @@ def process_upload(content, filename):
 ## so there cannot be a race condition...
 ## this is for debugging, eventually the output will be a table of moves
 @app.callback(
+    Output("pgn-upload-message", "children", allow_duplicate=True),
     Output("fens-store", "data"),
-    Output("move-slider", "max"),
+    Output("move-back", "disabled"),
+    Output("move-forward", "disabled"),
+    Output("move-idx", "data", allow_duplicate=True),
     Input("analyze-game", "n_clicks"),
     State("upload-pgn-data", "contents"),
     State("pgn-data","data"),
+    State("move-idx","data"),
     prevent_initial_call=True,
 )
-def analyze_game(n_clicks, content, pgn_data):
+def analyze_game(n_clicks, content, pgn_data, move_idx):
+    print(f"pgn_data = {pgn_data}")
+    if pgn_data is None:
+        error_message = f"Error: no pgn file found"
+        return error_message, None, 0, True, True, move_idx
     try:
         print("analyzing game...")
         testEngine = GameAnalysisEngine()
         testEngine.load_game(pgn_data)
         
         ## doesn't actually analyze game yet!
-        ## get the slider bar working
         # testEngine.analyze_game()
 
+        ## reenable buttons!
         fens = testEngine.get_fens()
-        return fens, len(fens)-1
+        move_idx = 0
+        return "", fens, False, False, move_idx
     except Exception as e:
         error_message = f"Error: your pgn file could not be analyzed due to {e}"
-        return error_message, 0
+        return error_message, None, True, True, 0
 
-## clientside callback to update the board based on the position of the slider
+@app.callback(
+    Output("move-idx", "data", allow_duplicate=True),
+    Input("move-back", "n_clicks"),
+    Input("move-forward", "n_clicks"),
+    State("move-idx", "data"),
+    State("fens-store", "data"),
+    prevent_initial_call=True,
+)
+def make_moves(back_click, forward_click, move_idx, fens):
+    if ctx.triggered_id == 'move-back':
+        if move_idx == 0:
+            pass
+        else:
+            move_idx = move_idx - 1
+    
+    if ctx.triggered_id == 'move-forward':
+        if move_idx == len(fens):
+            pass
+        else:
+            move_idx = move_idx + 1
+    
+    return move_idx
+
+
+## clientside callback to update the board based on the value of move-idx
 ## we store a list of FENs corresponding to positions in dcc.Store component, fens-store
 app.clientside_callback(
     """
@@ -170,7 +199,7 @@ app.clientside_callback(
     }
     """,
     Output("dummy", "data"),  # dummy output
-    Input("move-slider", "value"),
+    Input("move-idx", "data"),
     State("fens-store", "data"),
     prevent_initial_call=True,
 )

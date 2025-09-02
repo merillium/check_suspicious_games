@@ -36,7 +36,6 @@ class GameAnalysisEngine:
         node = self.game
         while not node.is_end():
             move = str(node.variations[0].move)
-            print(f"making move {move}")
             board.push_uci(move)
             fens.append(board.fen())
             node = node.variations[0]

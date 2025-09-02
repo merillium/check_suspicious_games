@@ -12,6 +12,10 @@ To install dependencies, run the following command:
 pip install -r requirements.txt
 ```
 
+## Running the App
+To run the app locally, cd into the app directory and then run the command:
+```python app.py```
+
 ## Tests
 To execute unit tests, run the following command:
 ```bash
