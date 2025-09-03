@@ -18,11 +18,26 @@ textarea {
     width: 400px;
 }
 
+.container {
+    display: flex;
+    flex-direction: row;
+}
+
+.fixed {
+    width: 450px;
+}
+
+.flex-item {
+    flex-grow: 1;
+}
+
 #gameinfo {
     width: 600px;
     height: 30px;
 }
 
-#pgn-textarea {
-    height: 200px;
+#pgn-load-message {
+    white-space: pre-line;
+    color: #ff6c6c;
+    padding-left: 10px;
 }

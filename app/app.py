@@ -1,5 +1,7 @@
 import base64
+import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output, State, ctx, no_update
+import dash_bootstrap_components as dbc
 from LichessGameDownloader import LichessGameDownloader
 from GameAnalysisEngine import GameAnalysisEngine
 
@@ -9,7 +11,7 @@ external_scripts = [
 ]
 
 external_stylesheets = [
-    "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"
+    "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css",
 ]
 
 app = Dash(
@@ -19,97 +21,93 @@ app = Dash(
 )
 
 app.layout = html.Div([
+    html.Div([
 
+        html.Div(id="board"),
+        html.Br(),
+        dcc.Store(id="fens-store"),  # stores the list of FENs
+        dcc.Store(id="move-idx", data=0),
+        dcc.Store(id="dummy"), # dummy output for clientside callback
+        html.Div(
+            [
+                html.Button('<<', id='move-beginning', className='move-button', n_clicks=0, disabled=True,),
+                html.Span(" "),
+                html.Button('<', id='move-back', className='move-button', n_clicks=0, disabled=True,),
+                html.Span(" "),
+                html.Button('>', id='move-forward', className='move-button', n_clicks=0, disabled=True),
+                html.Span(" "),
+                html.Button('>>', id='move-end', className='move-button', n_clicks=0, disabled=True,),
+            ],
+            className='all-move-buttons',
+        ),
+        html.Br(),
+        dcc.Textarea(
+            id='game-info',
+            value='Enter game_id or lichess game url',
+        ),
+        html.Br(),
+        html.Br(),
+        html.Div(
+            [
+                html.Button(
+                    "Download Game",
+                    id="download-game",
+                    n_clicks=0,
+                    style={"whiteSpace": "pre-wrap"},
+                )
+            ],
+            style={"paddingLeft": "10px"},
+        ),
+        html.Br(),
+        dcc.Upload(
+            id="upload-pgn-data",
+            children=html.Div(
+                [
+                    "Drag and Drop or ",
+                    html.A("Select a pgn file"),
+                ]
+            ),
+            max_size=10**6,
+            style={
+                "height": "60px",
+                "width": "300px",
+                "lineHeight": "60px",
+                "borderWidth": "1px",
+                "borderStyle": "dashed",
+                "borderRadius": "5px",
+                "textAlign": "center",
+            },
+        ),
+        dcc.Store(id="pgn-data"),
+        html.Br(),
+        html.Div(
+            [
+                html.Button(
+                    "Analyze Game",
+                    id="analyze-game",
+                    n_clicks=0,
+                    style={"whiteSpace": "pre-wrap"},
+                )
+            ],
+            style={"paddingLeft": "10px"},
+        ),
+        html.Br(),
+        html.Div(id="pgn-load-message"),
+        html.Div(id='dummy-output'),
+    ], className='fixed'),
+    html.Div([
+        dcc.Loading(
+            [dcc.Graph(id='analysis', figure=go.Figure())],
+            overlay_style={"visibility":"visible", "opacity": .5, "backgroundColor": "white"},
+            custom_spinner=html.H2(["Analyzing Game...", dbc.Spinner(color="danger")]),
+        )
+    ], className='flex-item')
     ## supports pgn upload currently (must have timestamps)
     ## will also want to support API call to load game
-
-    html.Div(id="board"),
-    html.Br(),
-    dcc.Store(id="fens-store"),  # stores the list of FENs
-    dcc.Store(id="move-idx", data=0),
-    dcc.Store(id="dummy"), # dummy output for clientside callback
-    html.Div(
-        [
-            html.Button('<<', id='move-beginning', className='move-button', n_clicks=0, disabled=True,),
-            html.Span(" "),
-            html.Button('<', id='move-back', className='move-button', n_clicks=0, disabled=True,),
-            html.Span(" "),
-            html.Button('>', id='move-forward', className='move-button', n_clicks=0, disabled=True),
-            html.Span(" "),
-            html.Button('>>', id='move-end', className='move-button', n_clicks=0, disabled=True,),
-        ],
-        className='all-move-buttons',
-    ),
-    html.Br(),
-    dcc.Textarea(
-        id='game-info',
-        value='Enter game_id or lichess game url',
-    ),
-    html.Br(),
-    html.Br(),
-    html.Div(
-        [
-            html.Button(
-                "Download Game",
-                id="download-game",
-                n_clicks=0,
-                style={"whiteSpace": "pre-wrap"},
-            )
-        ],
-        style={"paddingLeft": "10px"},
-    ),
-    html.Br(),
-    dcc.Textarea(
-        id='pgn-textarea',
-        value='Game will show up here',
-        readOnly=True,
-    ),
-    dcc.Upload(
-        id="upload-pgn-data",
-        children=html.Div(
-            [
-                "Drag and Drop or ",
-                html.A("Select a pgn file"),
-            ]
-        ),
-        max_size=10**6,
-        style={
-            "height": "60px",
-            "width": "300px",
-            "lineHeight": "60px",
-            "borderWidth": "1px",
-            "borderStyle": "dashed",
-            "borderRadius": "5px",
-            "textAlign": "center",
-        },
-    ),
-    dcc.Store(id="pgn-data"),
-    html.Br(),
-    html.Div(
-        [
-            html.Button(
-                "Analyze Game",
-                id="analyze-game",
-                n_clicks=0,
-                style={"whiteSpace": "pre-wrap"},
-            )
-        ],
-        style={"paddingLeft": "10px"},
-    ),
-    html.Br(),
-    html.Div(
-        id="pgn-upload-message",
-        style={
-            "whiteSpace": "pre-line",
-            "color": "red",
-            "paddingLeft": "10px",
-        },
-    ),
-    html.Div(id='dummy-output'),
-])
+], className='container')
 
 @app.callback(
-    Output("pgn-textarea", "value", allow_duplicate=True),
+    Output("pgn-load-message", "children", allow_duplicate=True),
     Output("pgn-data","data", allow_duplicate=True),
     Input("download-game", "n_clicks"),
     Input("game-info", "value"),
@@ -121,18 +119,16 @@ def download_game(download_click, game_code):
             print("here")
             gameDownloader = LichessGameDownloader()
             gameDownloader.get_game(game_code.strip())
-            pgn_textarea = str(gameDownloader.pgn)
             pgn_data = gameDownloader.pgn
-            return pgn_textarea, pgn_data
+            return "Game successfully downloaded!", pgn_data
         except Exception as e:
-            error_message = f"Error while downloading game: {e}"
+            error_message = f"Error while downloading game! Please check the game code or URL"
             return error_message, None
     else:
         return no_update
 
 @app.callback(
-    Output("pgn-textarea", "value"),
-    Output("pgn-upload-message", "children", allow_duplicate=True),
+    Output("pgn-load-message", "children", allow_duplicate=True),
     Output("pgn-data","data"),
     Input("upload-pgn-data", "contents"),
     State("upload-pgn-data", "filename"),
@@ -141,29 +137,30 @@ def download_game(download_click, game_code):
 def process_upload(content, filename):
     if not filename.endswith(".pgn"):
         error_message = "Error: you must upload a .pgn file"
-        return "",error_message,None
+        return error_message,None
     else:
         try:
             _, content_string = content.split(',', 1)
             decoded = base64.b64decode(content_string)
             pgn_string = decoded.decode('utf-8')
-            return pgn_string, "Successfully loaded!", pgn_string
+            return "Game successfully uploaded!", pgn_string
         except Exception as e:
             print(e)
             error_message = "Error: your pgn file could not be processed"
-            return "", error_message, None
+            return error_message, None
 
 ## allow duplicate output, since there's a button being pressed which is separate from loading a file
 ## so there cannot be a race condition...
 ## this is for debugging, eventually the output will be a table of moves
 @app.callback(
-    Output("pgn-upload-message", "children", allow_duplicate=True),
+    Output("pgn-load-message", "children", allow_duplicate=True),
     Output("fens-store", "data"),
     Output("move-beginning", "disabled"),
     Output("move-back", "disabled"),
     Output("move-forward", "disabled"),
     Output("move-end", "disabled"),
     Output("move-idx", "data", allow_duplicate=True),
+    Output("analysis", "figure"),
     Input("analyze-game", "n_clicks"),
     State("upload-pgn-data", "contents"),
     State("pgn-data","data"),
@@ -174,22 +171,29 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     print(f"pgn_data = {pgn_data}")
     if pgn_data is None:
         error_message = f"Error: no pgn file found"
-        return error_message, None, True, True, True, True, move_idx
+        return error_message, None, True, True, True, True, move_idx, no_update
     try:
         print("analyzing game...")
-        testEngine = GameAnalysisEngine()
-        testEngine.load_game(pgn_data)
+        gameAnalysisEngine = GameAnalysisEngine()
+        gameAnalysisEngine.load_game(pgn_data)
+
+        fens = gameAnalysisEngine.get_fens()
         
         ## doesn't actually analyze game yet!
-        # testEngine.analyze_game()
+        analysis_df = gameAnalysisEngine.analyze_game()
+        fig = go.Figure(data=[
+            go.Table(
+            header=dict(values=analysis_df.columns),
+            cells=dict(values=analysis_df.to_numpy().T))
+        ])
 
         ## reenable buttons!
-        fens = testEngine.get_fens()
+        print(f"storing fens: {fens}")
         move_idx = 0
-        return "", fens, False, False, False, False, move_idx
+        return "", fens, False, False, False, False, move_idx, fig
     except Exception as e:
         error_message = f"Error: your pgn file could not be analyzed due to {e}"
-        return error_message, None, True, True, True, True, 0
+        return error_message, None, True, True, True, True, 0, no_update
 
 @app.callback(
     Output("move-idx", "data", allow_duplicate=True),
@@ -202,6 +206,7 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     prevent_initial_call=True,
 )
 def make_moves(beginning_click, back_click, forward_click, end_click, move_idx, fens):
+    # print(f"{ctx.triggered_id} triggered")
     if ctx.triggered_id == 'move-beginning':
         if move_idx == 0:
             pass

@@ -171,4 +171,6 @@ class GameAnalysisEngine:
         self._extract_pgn_data()
         self._create_features()
 
-        print(self.game_df[['white_moves','black_moves','white_move_class','black_move_class']].to_string())
+        # print(self.game_df[['white_moves','black_moves','white_move_class','black_move_class']].to_string())
+
+        return self.game_df[['white_moves','black_moves','white_move_class','black_move_class']]
