@@ -22,13 +22,15 @@ To execute unit tests, run the following command:
 pytest -s tests/*.py
 ```
 
-## To-do
+## To-do + Error Handling
 - fix tests so that we can mock returning a pgn from lichess API, but don't make a GET request every time we run a test
 - finish basic version of app that supports pgn file upload, and error handling
 - thorough tests from preloaded pgns to serve as training for basic suspicious move detection
 - error handling for clicking Analyze game without loading a game first
+- check whether a game is blitz or rapid. bullet game analysis is probably not reliable
+- check that timestamps are included, throw an error if not (or provide analysis without timestamps, but this is less reliable)
+- still issues analyzing a pgn when a player resigns on the opponent's move
 
 ## App Layout Design
-- the pgn will be displayed but cannot be edited
-- how do we show the moves? maybe show the move with comments as the slider is moved
-- how do we display suspicious moves? do we use a figure, table, or just display as text?
+- moves on the board are controlled by forward and backward arrows
+- display moves and labels using a table, possibly add comments
