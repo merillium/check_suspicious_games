@@ -97,16 +97,12 @@ app.layout = html.Div([
         html.Div(id='dummy-output'),
     ], className='fixed'),
     html.Div([
-        # dcc.Loading(
-        #     [dcc.Graph(id='analysis', figure=go.Figure())],
-        #     overlay_style={"visibility":"visible", "opacity": .5, "backgroundColor": "white"},
-        #     custom_spinner=html.H2(["Analyzing Game...", dbc.Spinner(color="danger")]),
-        # )
         dcc.Loading(
             [dash_table.DataTable(
                 id='analysis-table',
                 data=[],
                 columns=[],
+                # filter_action="native", 
                 style_table={'overflowX': 'auto'},
                 style_cell={
                     # all three widths are needed
@@ -144,7 +140,6 @@ app.layout = html.Div([
 def download_game(download_click, game_code):
     if ctx.triggered_id == 'download-game':
         try:
-            print("here")
             gameDownloader = LichessGameDownloader()
             gameDownloader.get_game(game_code.strip())
             pgn_data = gameDownloader.pgn
@@ -158,6 +153,7 @@ def download_game(download_click, game_code):
 @app.callback(
     Output("pgn-load-message", "children", allow_duplicate=True),
     Output("pgn-data","data"),
+    Output("analyze-game","disabled", allow_duplicate=True),
     Input("upload-pgn-data", "contents"),
     State("upload-pgn-data", "filename"),
     prevent_initial_call=True,
@@ -165,63 +161,19 @@ def download_game(download_click, game_code):
 def process_upload(content, filename):
     if not filename.endswith(".pgn"):
         error_message = "Error: you must upload a .pgn file"
-        return error_message, None
+        return error_message, None, no_update
     else:
         try:
             _, content_string = content.split(',', 1)
             decoded = base64.b64decode(content_string)
             pgn_string = decoded.decode('utf-8')
-            return "Game successfully uploaded!", pgn_string
+
+            ## re-enable [Analyze Game] button, if it was previously disabled
+            return "Game successfully uploaded!", pgn_string, False
         except Exception as e:
             print(e)
             error_message = "Error: your pgn file could not be processed"
-            return error_message, None
-
-## allow duplicate output, since there's a button being pressed which is separate from loading a file
-## so there cannot be a race condition...
-## this is for debugging, eventually the output will be a table of moves
-# @app.callback(
-#     Output("pgn-load-message", "children", allow_duplicate=True),
-#     Output("fens-store", "data"),
-#     Output("move-beginning", "disabled"),
-#     Output("move-back", "disabled"),
-#     Output("move-forward", "disabled"),
-#     Output("move-end", "disabled"),
-#     Output("move-idx", "data", allow_duplicate=True),
-#     Output("analysis", "figure"),
-#     Input("analyze-game", "n_clicks"),
-#     State("upload-pgn-data", "contents"),
-#     State("pgn-data","data"),
-#     State("move-idx","data"),
-#     prevent_initial_call=True,
-# )
-# def analyze_game(n_clicks, content, pgn_data, move_idx):
-#     print(f"pgn_data = {pgn_data}")
-#     if pgn_data is None:
-#         error_message = f"Error: no pgn file found"
-#         return error_message, None, True, True, True, True, move_idx, no_update
-#     try:
-#         print("analyzing game...")
-#         gameAnalysisEngine = GameAnalysisEngine()
-#         gameAnalysisEngine.load_game(pgn_data)
-
-#         fens = gameAnalysisEngine.get_fens()
-        
-#         ## doesn't actually analyze game yet!
-#         analysis_df = gameAnalysisEngine.analyze_game()
-#         fig = go.Figure(data=[
-#             go.Table(
-#             header=dict(values=analysis_df.columns),
-#             cells=dict(values=analysis_df.to_numpy().T))
-#         ])
-
-#         ## reenable buttons!
-#         print(f"storing fens: {fens}")
-#         move_idx = 0
-#         return "", fens, False, False, False, False, move_idx, fig
-#     except Exception as e:
-#         error_message = f"Error: your pgn file could not be analyzed due to {e}"
-#         return error_message, None, True, True, True, True, 0, no_update
+            return error_message, None, no_update
 
 @app.callback(
     Output("pgn-load-message", "children", allow_duplicate=True),
@@ -233,6 +185,7 @@ def process_upload(content, filename):
     Output("move-idx", "data", allow_duplicate=True),
     Output("analysis-table", "data"),
     Output("analysis-table", "columns"),
+    Output("analyze-game","disabled"),
     Input("analyze-game", "n_clicks"),
     State("upload-pgn-data", "contents"),
     State("pgn-data","data"),
@@ -243,7 +196,7 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     print(f"pgn_data = {pgn_data}")
     if pgn_data is None:
         error_message = f"Error: no pgn file found"
-        return error_message, None, True, True, True, True, move_idx, no_update, no_update
+        return error_message, None, True, True, True, True, move_idx, no_update, no_update, no_update
     try:
         print("analyzing game...")
         gameAnalysisEngine = GameAnalysisEngine()
@@ -261,17 +214,23 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
         data = analysis_df.to_dict("records")
         columns = [{"name": i, "id": i} for i in analysis_df.columns]
 
-        ## reenable buttons!
-        print(f"storing fens: {fens}")
+        ## reenable move buttons, and disable the analyze game button
         move_idx = 0
-        return "", fens, False, False, False, False, move_idx, data, columns
+        return "", fens, False, False, False, False, move_idx, data, columns, True
     except Exception as e:
-        error_message = f"Error: your pgn file could not be analyzed due to {e}"
-        return error_message, None, True, True, True, True, 0, no_update, no_update
+
+        ## for debugging purposes, raise Exception
+        raise(e)
+    
+        ## when deploying the app, we don't want to actually crash the app,
+        ## so instead display an error message
+
+        # error_message = f"Error: your pgn file could not be analyzed due to {e}"
+        # return error_message, None, True, True, True, True, 0, no_update, no_update, no_update
 
 @app.callback(
     Output("move-idx", "data", allow_duplicate=True),
-    Output("analysis-table", "selected_rows"),
+    Output("analysis-table", "style_data_conditional"),
     Input("move-beginning", "n_clicks"),
     Input("move-back", "n_clicks"),
     Input("move-forward", "n_clicks"),
@@ -281,7 +240,11 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     prevent_initial_call=True,
 )
 def make_moves(beginning_click, back_click, forward_click, end_click, move_idx, fens):
-    # print(f"{ctx.triggered_id} triggered")
+    """
+    This callback handles a user moving forward or backwards in their game.
+    The internal move index, javascript board, and analysis table are updated.
+    """
+    
     if ctx.triggered_id == 'move-beginning':
         if move_idx == 0:
             pass
@@ -309,27 +272,47 @@ def make_moves(beginning_click, back_click, forward_click, end_click, move_idx, 
     else:
         return no_update, no_update
     
-    # print(f"{ctx.triggered_id} was triggered, move_idx updated to {move_idx}")
-    row_idx = move_idx // 2
-    return move_idx, [row_idx]
+    row_idx = (move_idx-1) // 2
 
-## reference for how to highlight rows
-## https://community.plotly.com/t/highlighting-selected-rows/49595/5
+    ## reference for how to highlight rows from a callback
+    ## https://community.plotly.com/t/highlighting-selected-rows/49595/5
+    row_selection = [{"if": {"row_index": row_idx}, "backgroundColor": "#C2F2FF"}]
 
-# @app.callback(
-#     Output("table", "style_data_conditional"),
-#     Input("table", "derived_viewport_selected_row_ids"),
-# )
-# def style_selected_rows(selRows):
-#     if selRows is None:
-#         return dash.no_update
-#     return [
-#         {"if": {"filter_query": "{{id}} ={}".format(i)}, "backgroundColor": "yellow",}
-#         for i in selRows
-#     ]
+    # print(row_selection)
 
-## clientside callback to update the board based on the value of move-idx
-## we store a list of FENs corresponding to positions in dcc.Store component, fens-store
+    return move_idx, row_selection
+
+@app.callback(
+    Output("move-idx", "data", allow_duplicate=True),
+    Output("analysis-table", "style_data_conditional", allow_duplicate=True),
+    Input("analysis-table", "active_cell"),
+    prevent_initial_call=True,
+)
+def handle_data_analysis_click(active_cell):
+    """
+    This callback handles when the user clicks on the data analysis
+    The board and internal move index is updated accordingly
+    """
+    if active_cell is None:
+        return no_update
+    
+    print(f"you selected {active_cell}")
+
+    column_id = active_cell['column_id']
+    if column_id not in ['white_moves','black_moves']:
+        return no_update
+    
+    else:
+        row_idx = active_cell['row']
+        col_idx = 0 if column_id == 'white_moves' else 1
+        move_idx = row_idx * 2 + col_idx - 1
+        print(f"calculate move_idx = {move_idx}")
+        row_selection = [{"if": {"row_index": row_idx}, "backgroundColor": "#C2F2FF"}]
+        return move_idx, row_selection
+
+
+## This clientside_callback helps update the board when the move index change
+## It updates the javascript board using the variable fen = fens[move_idx]
 app.clientside_callback(
     """
     function(move_idx, fens) {

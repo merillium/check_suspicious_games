@@ -131,6 +131,7 @@ class GameAnalysisEngine:
     
     @staticmethod
     def _label_moves(top_evals: list, forced_eval_th, critical_eval_spread_th, time_spent_th=None):
+        print(f"top_evals = {top_evals}")
         if (not isinstance(top_evals, list)) or (len(top_evals) == 0):
             return None
         
@@ -161,8 +162,8 @@ class GameAnalysisEngine:
 
         """
 
-        self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
-        self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
+        # self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
+        # self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
 
         self.game_df['white_move_class'] = self.game_df['white_top_evals'].apply(lambda x: self._label_moves(x, forced_eval_th, critical_eval_spread_th))
         self.game_df['black_move_class'] = self.game_df['black_top_evals'].apply(lambda x: self._label_moves(x, forced_eval_th, critical_eval_spread_th))
