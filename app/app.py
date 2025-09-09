@@ -133,6 +133,7 @@ app.layout = html.Div([
 @app.callback(
     Output("pgn-load-message", "children", allow_duplicate=True),
     Output("pgn-data","data", allow_duplicate=True),
+    Output("analyze-game","disabled", allow_duplicate=True),
     Input("download-game", "n_clicks"),
     Input("game-info", "value"),
     prevent_initial_call=True,
@@ -143,12 +144,12 @@ def download_game(download_click, game_code):
             gameDownloader = LichessGameDownloader()
             gameDownloader.get_game(game_code.strip())
             pgn_data = gameDownloader.pgn
-            return "Game successfully downloaded!", pgn_data
+            return "Game successfully downloaded!", pgn_data, False
         except Exception as e:
             error_message = f"Error while downloading game: {e}! Please check the game code or URL"
-            return error_message, None
+            return error_message, None, False
     else:
-        return no_update, no_update
+        return no_update, no_update, False
 
 @app.callback(
     Output("pgn-load-message", "children", allow_duplicate=True),
@@ -296,7 +297,7 @@ def handle_data_analysis_click(active_cell):
     if active_cell is None:
         return no_update
     
-    print(f"you selected {active_cell}")
+    # print(f"you selected {active_cell}")
 
     column_id = active_cell['column_id']
     if column_id not in ['white_moves','black_moves']:
@@ -305,8 +306,10 @@ def handle_data_analysis_click(active_cell):
     else:
         row_idx = active_cell['row']
         col_idx = 0 if column_id == 'white_moves' else 1
-        move_idx = row_idx * 2 + col_idx - 1
-        print(f"calculate move_idx = {move_idx}")
+        move_idx = row_idx*2 + col_idx + 1
+
+        # print(f"calculate move_idx = {move_idx}")
+
         row_selection = [{"if": {"row_index": row_idx}, "backgroundColor": "#C2F2FF"}]
         return move_idx, row_selection
 

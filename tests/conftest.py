@@ -26,6 +26,29 @@ GAME_ID_TO_PGN = {
     1. d4 Nf6 2. c4 g6 3. g3 { E60 King's Indian Defense: Fianchetto Variation, Immediate Fianchetto } c5 4. dxc5 Bg7 5. Bg2 Qa5+ 6. Nc3 Qxc5 7. Qd3 Nc6 8. Be3 Qa5 9. Bd2 O-O 10. Nh3 d6 11. b3 Bf5 12. e4 Ne5 13. Qe2 Bg4 14. Qe3 { White wins on time. } 1-0
     """,
     'XXXXXXX-': None,
+    'test': """
+    [Event "rated blitz game"]
+    [Site "https://lichess.org/test"]
+    [Date "2999.12.31"]
+    [White "joddle"]
+    [Black "testJoddle"]
+    [Result "1-0"]
+    [GameId "xxxxxx"]
+    [UTCDate "2999.12.31"]
+    [UTCTime "12:12:12"]
+    [WhiteElo "2000"]
+    [BlackElo "1800"]
+    [WhiteRatingDiff "+2"]
+    [BlackRatingDiff "-2"]
+    [Variant "Standard"]
+    [TimeControl "180+0"]
+    [ECO "D11"]
+    [Opening "Slav Defense: Test Variation"]
+    [Termination "Normal"]
+    [Annotator "lichess.org"]
+
+    1. d4 { [%clk 0:03:00] } 1... d5 { [%clk 0:03:00] } 2. c4 { [%clk 0:03:00] } { Black resigns. } 1-0
+    """
 }
 
 @pytest.fixture(params=['doCFjU1j'])
