@@ -147,7 +147,7 @@ class GameAnalysisEngine:
     
     @staticmethod
     def _label_moves(top_evals: list, move_capture, forced_eval_th, critical_eval_spread_th):
-        """Label moves as forced or critical"""
+        """Label moves as forced, forced recapture, or critical"""
         print(f"top_evals = {top_evals}")
         if (not isinstance(top_evals, list)) or (len(top_evals) == 0):
             return None
@@ -179,7 +179,8 @@ class GameAnalysisEngine:
         """Classify moves as suspicious based on the following rules:
         
         (1) unusually long time spent on forced moves, greater or equal to forced_eval_time_th = 5s
-        (2) unusually short or consistent time spent on critical moves (but how do we quantify this? stdev? let the user decide?)
+        (2) unusually short or consistent time spent on critical moves 
+            (a) but how do we quantify this? relative stdev? let the user decide?
 
         Other ideas to possibly implement:
         (3) "unusually bad blunders" a blunder that doesn't appear in the top 5 moves?
