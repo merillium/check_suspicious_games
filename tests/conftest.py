@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import textwrap
 import pytest
@@ -32,7 +33,7 @@ GAME_INFO = {
         ],
         "expected_game_df": pd.DataFrame({
             'white_moves': ['d2d4','c2c4','g2g3','d4c5','f1g2','b1c3','d1d3','c1e3','e3d2','g1h3','b2b3','e2e4','d3e2','e2e3'],
-            'black_moves': ['g8f6','g7g6','c7c5','f8g7','d8a5','a5c5','b8c6','c5a5','e8g8','d7d6','c8f5','c6e5','f5g4',None],
+            'black_moves': ['g8f6','g7g6','c7c5','f8g7','d8a5','a5c5','b8c6','c5a5','e8g8','d7d6','c8f5','c6e5','f5g4',np.nan],
         })
     },
     'test': {
@@ -64,7 +65,7 @@ GAME_INFO = {
         ],
         "expected_game_df": pd.DataFrame({
             'white_moves': ['e2e4','g1f3'],
-            'black_moves': ['c7c5',None],
+            'black_moves': ['c7c5',np.nan],
         })
     }
 }
