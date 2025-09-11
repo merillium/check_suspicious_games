@@ -21,5 +21,6 @@ def test_extract_pgn_data(get_sample_game_info):
     testEngine = GameAnalysisEngine()
     testEngine.load_game(pgn)
     testEngine._extract_pgn_data()
+    print(testEngine.game_df[['white_moves','black_moves','white_captures','black_captures']])
     test_game_df = testEngine.game_df[['white_moves','black_moves']]
     assert_frame_equal(test_game_df, expected_game_df)

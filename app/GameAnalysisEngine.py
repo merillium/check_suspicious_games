@@ -89,16 +89,18 @@ class GameAnalysisEngine:
             node = self.game.variations[0]
             
             move_str = str(node.move)
-            board.push_uci(move_str)
+            
+            if node.move is None:
+                print("Warning: move is none!")
 
             if board.is_capture(node.move):
                 capture = True
+                print(f"move {move_str} is a capture")
             else:
                 capture = False
+                print(f"move {move_str} is NOT a capture")
 
-            if node.move is None:
-                print("Warning: move is none!")
-            
+            board.push_uci(move_str)
 
             ## ALL evals are from white's point of view
             top_moves_info = self.engine.get_top_moves(5)
