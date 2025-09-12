@@ -95,10 +95,10 @@ class GameAnalysisEngine:
 
             if board.is_capture(node.move):
                 capture = True
-                print(f"move {move_str} is a capture")
+                # print(f"move {move_str} is a capture")
             else:
                 capture = False
-                print(f"move {move_str} is NOT a capture")
+                # print(f"move {move_str} is NOT a capture")
 
             board.push_uci(move_str)
 
@@ -191,14 +191,12 @@ class GameAnalysisEngine:
         false negative: a cheater blundered intentionally, but it's not a "bad enough" blunder to be flagged
 
         """
-        if (move_class == 'forced') & (time_spent >= forced_eval_time_th):
+        if (move_class == 'forced capture') & (time_spent >= forced_eval_time_th):
+            return "long time spent on forced capture"
+        elif (move_class == 'forced') & (time_spent >= forced_eval_time_th):
             return "long time spent on forced move"
-        elif (move_class == 'critical') & (time_spent <= 5):
-            return "short time spent on critical move"
         else:
             return ""
-    
-
 
     def _flag_moves(self, forced_eval_th=3.00, critical_eval_spread_th=2.00, forced_eval_time_th=5):
         """Flag certain moves based on critical or forced labels, combined with time spent to flag a move as suspicious
@@ -218,6 +216,19 @@ class GameAnalysisEngine:
         self.game_df['black_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['black_top_evals'], x['black_captures'], forced_eval_th, critical_eval_spread_th), axis=1)
         self.game_df['white_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['white_move_label'], x['white_time_spent']), axis=1)
         self.game_df['black_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['black_move_label'], x['black_time_spent']), axis=1)
+
+        ## print info on coefficient of variation for critical moves
+        ## we should probably wrap this in a separate function, but we will leave it here for now
+        white_critical_df = self.game_df[self.game_df['white_move_label'] == 'critical'].copy()
+        white_coeff_variation = np.std(white_critical_df['white_time_spent']) / np.mean(white_critical_df['white_time_spent'])
+
+        black_critical_df = self.game_df[self.game_df['black_move_label'] == 'critical'].copy()
+        black_coeff_variation = np.std(black_critical_df['black_time_spent']) / np.mean(black_critical_df['black_time_spent'])
+        print(black_critical_df)
+
+        ## we could possibly store this in a summary stats table
+        print(f"white coeff variation for time spent, based on {len(white_critical_df)} critical moves = {white_coeff_variation}")
+        print(f"black coeff variation for time spen, based on {len(black_critical_df)} critical moves = {black_coeff_variation}")
 
     def _create_features(self):
         # self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)

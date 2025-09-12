@@ -20,6 +20,10 @@ pip install -r requirements.txt
 To run the app locally, cd into the root directory and then run the command:
 ```python app/app.py```
 
+The app is currently still in the development process, so this is just a prototype with extra data that won't be typically shown to the end user.
+
+![App example](images/check_suspicious_games_app.png)
+
 ## Tests
 To execute unit tests, run the following command:
 ```bash
