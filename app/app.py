@@ -98,19 +98,33 @@ app.layout = html.Div([
     ], className='fixed'),
     html.Div([
         dcc.Loading(
-            [dash_table.DataTable(
-                id='analysis-table',
-                data=[],
-                columns=[],
-                # filter_action="native", 
-                style_table={'overflowX': 'auto'},
-                style_cell={
-                    # all three widths are needed
-                    'minWidth': '50px', 'width': '180px', 'maxWidth': '180px',
-                    'overflow': 'hidden',
-                    'textOverflow': 'ellipsis',
-                }
-        )],
+            [
+                dash_table.DataTable(
+                    id='analysis-table',
+                    data=[],
+                    columns=[],
+                    # filter_action="native", 
+                    style_table={'overflowX': 'auto'},
+                    style_cell={
+                        # all three widths are needed
+                        'minWidth': '30px', 'width': '180px', 'maxWidth': '180px',
+                        'overflow': 'hidden',
+                        'textOverflow': 'ellipsis',
+                }),
+                html.Br(),
+                dash_table.DataTable(
+                    id='summary-table',
+                    data=[],
+                    columns=[],
+                    # filter_action="native", 
+                    style_table={'overflowX': 'auto'},
+                    style_cell={
+                        # all three widths are needed
+                        'minWidth': '20px', 'width': '180px', 'maxWidth': '180px',
+                        'overflow': 'hidden',
+                        'textOverflow': 'ellipsis',
+                })
+            ],
         overlay_style={"visibility":"visible", "opacity": .5, "backgroundColor": "white"},
         custom_spinner=html.Div(
             [
@@ -186,6 +200,8 @@ def process_upload(content, filename):
     Output("move-idx", "data", allow_duplicate=True),
     Output("analysis-table", "data"),
     Output("analysis-table", "columns"),
+    Output("summary-table", "data"),
+    Output("summary-table", "columns"),
     Output("analyze-game","disabled"),
     Input("analyze-game", "n_clicks"),
     State("upload-pgn-data", "contents"),
@@ -197,7 +213,7 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
     print(f"pgn_data = {pgn_data}")
     if pgn_data is None:
         error_message = f"Error: no pgn file found"
-        return error_message, None, True, True, True, True, move_idx, no_update, no_update, no_update
+        return error_message, None, True, True, True, True, move_idx, no_update, no_update, no_update, no_update, no_update
     try:
         print("analyzing game...")
         gameAnalysisEngine = GameAnalysisEngine()
@@ -205,19 +221,27 @@ def analyze_game(n_clicks, content, pgn_data, move_idx):
 
         fens = gameAnalysisEngine.get_fens()
         
-        analysis_df = gameAnalysisEngine.analyze_game()
+        analysis_df, summary_stats_df = gameAnalysisEngine.analyze_game()
 
         ## convert list columns to strings so that they are json serializeable 
         for col in analysis_df.columns:
             analysis_df[col] = analysis_df[col].apply(
                 lambda x: str(x) if isinstance(x, (list, dict)) else x
             )
-        data = analysis_df.to_dict("records")
-        columns = [{"name": i, "id": i} for i in analysis_df.columns]
+
+        for col in summary_stats_df.columns:
+            summary_stats_df[col] = summary_stats_df[col].apply(
+                lambda x: str(x) if isinstance(x, (list, dict)) else x
+            )
+
+        analysis_data = analysis_df.to_dict("records")
+        analysis_columns = [{"name": i, "id": i} for i in analysis_df.columns]
+        summary_stats_data = summary_stats_df.to_dict("records")
+        summary_stats_columns = [{"name": i, "id": i} for i in summary_stats_df.columns]
 
         ## reenable move buttons, and disable the analyze game button
         move_idx = 0
-        return "", fens, False, False, False, False, move_idx, data, columns, True
+        return "", fens, False, False, False, False, move_idx, analysis_data, analysis_columns, summary_stats_data, summary_stats_columns, True
     except Exception as e:
 
         ## for debugging purposes, raise Exception

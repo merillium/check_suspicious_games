@@ -24,6 +24,7 @@ class GameAnalysisEngine:
             parameters={"Threads": 2, "Minimum Thinking Time": 0.1}
         )
         self.game_df = None
+        self.game_summary_stats = None
     
     def load_game(self, pgn: str):
         if not isinstance(pgn, str):
@@ -217,19 +218,6 @@ class GameAnalysisEngine:
         self.game_df['white_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['white_move_label'], x['white_time_spent']), axis=1)
         self.game_df['black_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['black_move_label'], x['black_time_spent']), axis=1)
 
-        ## print info on coefficient of variation for critical moves
-        ## we should probably wrap this in a separate function, but we will leave it here for now
-        white_critical_df = self.game_df[self.game_df['white_move_label'] == 'critical'].copy()
-        white_coeff_variation = np.std(white_critical_df['white_time_spent']) / np.mean(white_critical_df['white_time_spent'])
-
-        black_critical_df = self.game_df[self.game_df['black_move_label'] == 'critical'].copy()
-        black_coeff_variation = np.std(black_critical_df['black_time_spent']) / np.mean(black_critical_df['black_time_spent'])
-        print(black_critical_df)
-
-        ## we could possibly store this in a summary stats table
-        print(f"white coeff variation for time spent, based on {len(white_critical_df)} critical moves = {white_coeff_variation}")
-        print(f"black coeff variation for time spen, based on {len(black_critical_df)} critical moves = {black_coeff_variation}")
-
     def _create_features(self):
         # self.game_df['black_evals_shifted'] = self.game_df['black_evals'].shift(1)
         # self.game_df['white_eval_diff'] = self.game_df['white_evals'] - self.game_df['black_evals_shifted']
@@ -246,10 +234,6 @@ class GameAnalysisEngine:
         # white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
         # black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
 
-        ## determine when captures happen
-        # self.game_df['white_capture'] = self.game_df['white_moves'].str.contains("x")
-        # self.game_df['black_capture'] = self.game_df['black_moves'].str.contains("x")
-
         ## get time spent on each move, accounting for increment!
         ## if white goes from 180s to 180s in 3+2 game, they spent 2 seconds on their move
         self.game_df['white_time_spent'] = self.game_df['white_times'].shift(1) - self.game_df['white_times'] + self.game_info['increment']
@@ -261,15 +245,45 @@ class GameAnalysisEngine:
         # print(f"white average cp loss = {white_avg_cp_loss}")
         # print(f"black average cp loss = {black_avg_cp_loss}")
     
+    def _analyze_critical_moves(self):
+
+        ## print info on coefficient of variation for critical moves
+        ## we should probably wrap this in a separate function, but we will leave it here for now
+        white_critical_df = self.game_df[self.game_df['white_move_label'] == 'critical'].copy()
+        white_num_critical_moves = len(white_critical_df)
+        white_avg_time_critical_moves = np.mean(white_critical_df['white_time_spent'])
+        white_coeff_variation = np.std(white_critical_df['white_time_spent']) / white_avg_time_critical_moves
+
+        black_critical_df = self.game_df[self.game_df['black_move_label'] == 'critical'].copy()
+        black_num_critical_moves = len(black_critical_df)
+        black_avg_time_critical_moves = np.mean(black_critical_df['black_time_spent'])
+        black_coeff_variation = np.std(black_critical_df['black_time_spent']) / black_avg_time_critical_moves
+
+        # print(black_critical_df)
+
+        ## we could possibly store this in a summary stats table
+        # print(f"white coeff variation for time spent, based on {len(white_critical_df)} critical moves = {white_coeff_variation}")
+        # print(f"black coeff variation for time spen, based on {len(black_critical_df)} critical moves = {black_coeff_variation}")
+        self.game_summary_stats = pd.DataFrame({
+            'white_num_critical_moves': [white_num_critical_moves],
+            'black_num_critical_moves': [black_num_critical_moves],
+            'white_avg_time_critical_moves': [white_avg_time_critical_moves],
+            'black_avg_time_critical_moves': [black_avg_time_critical_moves],
+            'white_coeff_variation': [white_coeff_variation],
+            'black_coeff_variation': [black_coeff_variation],
+        })
+    
     def analyze_game(self):
         self._extract_pgn_data()
         self._create_features()
-        self._flag_moves()
-        # self._analyze_critical_moves() --> get relative standard deviation of time spent on all critical moves?
+        self._flag_moves( ) # --> uses helper functions _label_moves and _classify_moves
+        self._analyze_critical_moves() # --> get relative standard deviation of time spent on all critical movesd
 
-        return self.game_df[[
+        game_df_display = self.game_df[[
             'white_moves','black_moves',
             'white_move_label','black_move_label',
             'white_time_spent','black_time_spent',
             'white_move_flag','black_move_flag'
         ]].copy()
+
+        return game_df_display, self.game_summary_stats
