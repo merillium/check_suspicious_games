@@ -149,24 +149,28 @@ class GameAnalysisEngine:
         self.game_df = pd.DataFrame({key:pd.Series(value) for key, value in data_dict.items()})
     
     @staticmethod
-    def _label_moves(top_evals: list, move_capture, forced_eval_th, critical_eval_spread_th):
-        """Label moves as forced, forced recapture, or critical"""
+    def _label_moves(top_evals: list, opp_capture, forced_eval_th, critical_eval_spread_th):
+        """Label moves as forced, forced legal, forced recapture, or critical"""
         print(f"top_evals = {top_evals}")
         if (not isinstance(top_evals, list)) or (len(top_evals) == 0):
             return None
         
         ## only legal move --> forced
         elif len(top_evals) == 1:
-            return "forced"
+            return "forced legal"
         
         ## the best move is much better than all other moves --> forced
         ## white's move [0.2, -5.00, -5.00] --> should be forced
         ## black's move [-0.2, 3.00, 4.00] --> should be forced
+
+        ## look at forced REcaptures, forced captures and forced moves throw FALSE positives
         elif np.abs(top_evals[0] - top_evals[1]) > forced_eval_th:
-            if move_capture:
-                return "forced capture"
+            
+            if opp_capture:
+                return "forced recapture"
             else:
-                return "forced"
+                ## placeholder as we determine other types of forced moves
+                return "forced OTHER"
     
         ## out of the top 5 moves, the spread between best and worst is sufficiently large --> critical
         ## and you can't already be losing or winning, so critical evals are only for -2.00 < best move < 2.00
@@ -192,7 +196,7 @@ class GameAnalysisEngine:
         false negative: a cheater blundered intentionally, but it's not a "bad enough" blunder to be flagged
 
         """
-        if (move_class == 'forced capture') & (time_spent >= forced_eval_time_th):
+        if (move_class == 'forced recapture') & (time_spent >= forced_eval_time_th):
             return "long time spent on forced capture"
         elif (move_class == 'forced') & (time_spent >= forced_eval_time_th):
             return "long time spent on forced move"
@@ -212,9 +216,15 @@ class GameAnalysisEngine:
 
         # self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
         # self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
+        
+        ## white opp capture = black captured on the last move
+        self.game_df['white_opp_capture'] = self.game_df.apply(lambda x: True if x['white_captures'].shift(1) else False)
 
-        self.game_df['white_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['white_top_evals'], x['white_captures'], forced_eval_th, critical_eval_spread_th), axis=1)
-        self.game_df['black_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['black_top_evals'], x['black_captures'], forced_eval_th, critical_eval_spread_th), axis=1)
+        ## black opp capture = white captured on the same move
+        self.game_df['black_opp_capture'] = self.game_df.apply(lambda x: True if x['white_captures'] else False)
+
+        self.game_df['white_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['white_top_evals'], x['white_opp_capture'], forced_eval_th, critical_eval_spread_th), axis=1)
+        self.game_df['black_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['black_top_evals'], x['black_opp_capture'], forced_eval_th, critical_eval_spread_th), axis=1)
         self.game_df['white_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['white_move_label'], x['white_time_spent']), axis=1)
         self.game_df['black_move_flag'] = self.game_df.apply(lambda x: self._classify_moves(x['black_move_label'], x['black_time_spent']), axis=1)
 
