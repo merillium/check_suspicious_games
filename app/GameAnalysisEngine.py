@@ -149,7 +149,7 @@ class GameAnalysisEngine:
         self.game_df = pd.DataFrame({key:pd.Series(value) for key, value in data_dict.items()})
     
     @staticmethod
-    def _label_moves(top_evals: list, opp_capture, forced_eval_th, critical_eval_spread_th):
+    def _label_moves(top_evals: list, opp_capture: bool, forced_eval_th: float, critical_eval_spread_th: float):
         """Label moves as forced, forced legal, forced recapture, or critical"""
         print(f"top_evals = {top_evals}")
         if (not isinstance(top_evals, list)) or (len(top_evals) == 0):
@@ -182,7 +182,7 @@ class GameAnalysisEngine:
             return ""
     
     @staticmethod
-    def _classify_moves(move_class, time_spent, forced_eval_time_th=5):
+    def _classify_moves(move_class: str, time_spent: float, forced_eval_time_th: float = 5):
         """Classify moves as suspicious based on the following rules:
         
         (1) unusually long time spent on forced moves, greater or equal to forced_eval_time_th = 5s
@@ -197,7 +197,7 @@ class GameAnalysisEngine:
 
         """
         if (move_class == 'forced recapture') & (time_spent >= forced_eval_time_th):
-            return "long time spent on forced capture"
+            return "long time spent on forced recapture"
         elif (move_class == 'forced') & (time_spent >= forced_eval_time_th):
             return "long time spent on forced move"
         else:
@@ -216,12 +216,6 @@ class GameAnalysisEngine:
 
         # self.game_df['white_top_eval_range'] = self.game_df['white_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
         # self.game_df['black_top_eval_range'] = self.game_df['black_top_evals'].apply(lambda x: max(x)-min(x) if isinstance(x, list) else None)
-        
-        ## white opp capture = black captured on the last move
-        self.game_df['white_opp_capture'] = self.game_df.apply(lambda x: True if x['white_captures'].shift(1) else False)
-
-        ## black opp capture = white captured on the same move
-        self.game_df['black_opp_capture'] = self.game_df.apply(lambda x: True if x['white_captures'] else False)
 
         self.game_df['white_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['white_top_evals'], x['white_opp_capture'], forced_eval_th, critical_eval_spread_th), axis=1)
         self.game_df['black_move_label'] = self.game_df.apply(lambda x: self._label_moves(x['black_top_evals'], x['black_opp_capture'], forced_eval_th, critical_eval_spread_th), axis=1)
@@ -243,6 +237,12 @@ class GameAnalysisEngine:
         
         # white_avg_cp_loss = self.game_df['white_eval_diff'].sum() / len(self.game_df)
         # black_avg_cp_loss = self.game_df['black_eval_diff'].sum() / len(self.game_df)
+
+        ## white opp capture = black captured on the last move
+        self.game_df['white_opp_capture'] = self.game_df['black_captures'].shift(1)
+
+        ## black opp capture = white captured on the same move
+        self.game_df['black_opp_capture'] = self.game_df['white_captures']
 
         ## get time spent on each move, accounting for increment!
         ## if white goes from 180s to 180s in 3+2 game, they spent 2 seconds on their move
@@ -286,7 +286,7 @@ class GameAnalysisEngine:
     def analyze_game(self):
         self._extract_pgn_data()
         self._create_features()
-        self._flag_moves( ) # --> uses helper functions _label_moves and _classify_moves
+        self._flag_moves() # --> uses helper functions _label_moves and _classify_moves
         self._analyze_critical_moves() # --> get relative standard deviation of time spent on all critical movesd
 
         game_df_display = self.game_df[[

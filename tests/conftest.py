@@ -26,7 +26,12 @@ GAME_INFO = {
             [Termination ""]
             [Annotator "lichess.org"]
 
-            1. d4 d6 2. c4 e5 3. dxe5 dxe5 4. Qxd8+ Kxd8 5. Nc3 { Draw Agreed. } 1/2-1/2
+            1. d4 { [%clk 0:03:00] } d6 { [%clk 0:03:00] } 
+            2. c4 { [%clk 0:02:59] } e5 { [%clk 0:02:59] } 
+            3. dxe5 { [%clk 0:02:58] } dxe5 { [%clk 0:02:58] }
+            4. Qxd8+ { [%clk 0:02:58] } Kxd8 { [%clk 0:02:00] }  
+            5. Nc3 { [%clk 0:02:50] } 
+            { Draw Agreed. } 1/2-1/2
         """,
        "expected_fens": [
            'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', # starting position
@@ -41,6 +46,10 @@ GAME_INFO = {
             'black_moves': ['d7d6','e7e5','d6e5','e8d8',np.nan],
             'white_captures': [False, False, True, True, False],
             'black_captures': [False, False, True, True, np.nan],
+            'white_opp_capture': [None, False, False, True, True],
+            'black_opp_capture': [False, False, True, True, False],
+            'white_time_spent': [np.nan, 3.0, 3.0, 2.0, 10.0],
+            'black_time_spent': [np.nan, 3.0, 3.0, 60.0, np.nan],
         })
     },
 }
