@@ -26,7 +26,7 @@ To run the app locally, cd into the root directory and then run the command:
 
 The app is currently still under development, so this is just a prototype with extra data that won't be typically shown to the end user.
 
-![App example](images/check_suspicious_games_app.png)
+![App example](images/check_suspicious_games_app2.png)
 
 ## App Features
 - The [Analyze Game] button will be disabled until a valid pgn is loaded
