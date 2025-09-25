@@ -16,11 +16,8 @@ To install dependencies, run the following command:
 pip install -r requirements.txt
 ```
 
-## App Layout Design
-- moves on the board are controlled by forward and backward arrows
-- display moves and labels using a table, possibly add comments
-
 ## Running the App
+
 To run the app locally, cd into the root directory and then run the command:
 ```python app/app.py```
 
@@ -28,13 +25,27 @@ The app is currently still under development, so this is just a prototype with e
 
 ![App example](images/check_suspicious_games_app2.png)
 
-## App Features
-- The [Analyze Game] button will be disabled until a valid pgn is loaded
-- To load a pgn, the user can either manually download the game with timestamps, and upload it into the app, or supply the lichess game id, which will prompt the app to fetch the pgn using an API call to lichess
-- Once a valid pgn is loaded, the [Analyze Game] button will become active for the user to click. once analysis completes, the button will be disabled again to avoid accidentally analyzing the same game
-- When analysis is completed, the board and move buttons will become active, allowing the user to click through the game
-- At the same time, two tables will appear: (1) a table displaying move by move analysis with think times, classifications of moves (critical, forced reacpture, etc), and moves flagged as suspicious, and (2) a summary table displaying analysis of critical moves, including average think time and coefficient of variation for think time (standard deviation relative to mean). these metrics are still being refined
-- there is basic error handling: the user must upload a pgn, and only regular chess games with timestamps and a time control indicated can be analyzed. 
+## App Layout
+
+1. Loading a Game
+The Analyze Game button is initially disabled.
+A valid PGN must be loaded before analysis, so you can either manually download the PGN (with timestamps) and upload it into the app, or provide a Lichess game ID, which the app will use to fetch the PGN via API.
+
+2. Running Analysis
+Once a valid PGN is loaded, the Analyze Game button becomes active, and after clicking, the app runs analysis.
+When analysis finishes, the button is disabled again to prevent duplicate runs.
+
+3. Exploring Results
+The chessboard and move navigation buttons become active, allowing the user to step through the game. Two result tables are displayed:
+
+- Move-by-Move Analysis Table: Shows think times, move classifications (e.g., critical, forced recapture), and flags suspicious moves.
+- Summary Table: Provides aggregate metrics for critical moves, such as average think time and coefficient of variation (std dev relative to mean).
+
+These metrics are still being refined.
+
+4. Error Handling
+- The app only accepts valid PGNs from regular chess games with timestamps and a defined time control.
+- Invalid uploads will trigger an error message.
 
 ## Tests
 To execute unit tests, run the following command:
