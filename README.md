@@ -28,12 +28,6 @@ The app is currently still under development, so this is just a prototype with e
 
 ![App example](images/check_suspicious_games_app.png)
 
-## Tests
-To execute unit tests, run the following command:
-```bash
-pytest -s tests/*.py
-```
-
 ## App Features
 - The [Analyze Game] button will be disabled until a valid pgn is loaded
 - To load a pgn, the user can either manually download the game with timestamps, and upload it into the app, or supply the lichess game id, which will prompt the app to fetch the pgn using an API call to lichess
@@ -41,6 +35,14 @@ pytest -s tests/*.py
 - When analysis is completed, the board and move buttons will become active, allowing the user to click through the game
 - At the same time, two tables will appear: (1) a table displaying move by move analysis with think times, classifications of moves (critical, forced reacpture, etc), and moves flagged as suspicious, and (2) a summary table displaying analysis of critical moves, including average think time and coefficient of variation for think time (standard deviation relative to mean). these metrics are still being refined
 - there is basic error handling: the user must upload a pgn, and only regular chess games with timestamps and a time control indicated can be analyzed. 
+
+## Tests
+To execute unit tests, run the following command:
+```bash
+pytest -s tests/*.py
+```
+
+Note that the unit tests are incomplete and only offer incomplete coverage of the `GameAnalysisEngine` class, and no unit tests for app functionality has yet been written.
 
 ## Open Issues
 ### Methods + Limitations
