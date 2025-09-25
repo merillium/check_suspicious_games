@@ -28,20 +28,19 @@ The app is currently still under development, so this is just a prototype with e
 ## App Layout
 
 1. Loading a Game
-The Analyze Game button is initially disabled.
-A valid PGN must be loaded before analysis, so you can either manually download the PGN (with timestamps) and upload it into the app, or provide a Lichess game ID, which the app will use to fetch the PGN via API.
+- The Analyze Game button is initially disabled.  
+- A valid PGN must be loaded before analysis, so you can either manually download the PGN (with timestamps) and upload it into the app, or provide a Lichess game ID, which the app will use to fetch the PGN via API.  
 
 2. Running Analysis
-Once a valid PGN is loaded, the Analyze Game button becomes active, and after clicking, the app runs analysis.
-When analysis finishes, the button is disabled again to prevent duplicate runs.
+- Once a valid PGN is loaded, the Analyze Game button becomes active, and after clicking, the app runs analysis.  
+- When analysis finishes, the button is disabled again to prevent duplicate runs.  
 
 3. Exploring Results
-The chessboard and move navigation buttons become active, allowing the user to step through the game. Two result tables are displayed:
+The chessboard and move navigation buttons become active, allowing the user to step through the game.  
+Two result tables are displayed:
 
 - Move-by-Move Analysis Table: Shows think times, move classifications (e.g., critical, forced recapture), and flags suspicious moves.
-- Summary Table: Provides aggregate metrics for critical moves, such as average think time and coefficient of variation (std dev relative to mean).
-
-These metrics are still being refined.
+- Summary Table: Provides aggregate metrics for critical moves, such as average think time and coefficient of variation (std dev relative to mean). These metrics are still being refined.
 
 4. Error Handling
 - The app only accepts valid PGNs from regular chess games with timestamps and a defined time control.
